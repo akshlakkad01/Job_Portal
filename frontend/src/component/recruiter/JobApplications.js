@@ -343,6 +343,10 @@ const ApplicationTile = (props) => {
   const setPopup = useContext(SetPopupContext);
   const [open, setOpen] = useState(false);
 
+  // Debug logging
+  console.log("Application data:", application);
+  console.log("Job applicant data:", application.jobApplicant);
+
   const appliedOn = new Date(application.dateOfApplication);
 
   const handleClose = () => {
@@ -365,10 +369,12 @@ const ApplicationTile = (props) => {
       application.jobApplicant.resume !== ""
     ) {
       const address = `${server}${application.jobApplicant.resume}`;
-      console.log(address);
       axios(address, {
         method: "GET",
         responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       })
         .then((response) => {
           const file = new Blob([response.data], { type: "application/pdf" });
@@ -376,11 +382,10 @@ const ApplicationTile = (props) => {
           window.open(fileURL);
         })
         .catch((error) => {
-          console.log(error);
           setPopup({
             open: true,
             severity: "error",
-            message: "Error",
+            message: "Error downloading resume",
           });
         });
     } else {
@@ -551,16 +556,30 @@ const ApplicationTile = (props) => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            flexDirection: "column",
           }}
         >
           <Avatar
-            src={`${server}${application.jobApplicant.profile}`}
+            src={application.jobApplicant.profile ? `${server}${application.jobApplicant.profile}` : undefined}
             className={classes.avatar}
-          />
+            style={{ 
+              width: 80, 
+              height: 80, 
+              marginBottom: 8,
+              border: '2px solid #e0e0e0'
+            }}
+          >
+            {!application.jobApplicant.profile && application.jobApplicant.name ? 
+              application.jobApplicant.name.charAt(0).toUpperCase() : 'U'
+            }
+          </Avatar>
+          <Typography variant="caption" style={{ textAlign: 'center', color: '#666' }}>
+            {application.jobApplicant.name}
+          </Typography>
         </Grid>
         <Grid container item xs={7} spacing={1} direction="column">
           <Grid item>
-            <Typography variant="h5">
+            <Typography variant="h5" style={{ fontWeight: 600, color: '#333' }}>
               {application.jobApplicant.name}
             </Typography>
           </Grid>
@@ -594,15 +613,40 @@ const ApplicationTile = (props) => {
             ))}
           </Grid>
         </Grid>
-        <Grid item container direction="column" xs={3}>
+        <Grid item container direction="column" xs={3} spacing={2}>
           <Grid item>
             <Button
               variant="contained"
               className={classes.statusBlock}
               color="primary"
+              disabled={!application.jobApplicant.resume || application.jobApplicant.resume === ""}
               onClick={() => getResume()}
+              style={{ marginBottom: 8 }}
             >
-              Download Resume
+              {application.jobApplicant.resume && application.jobApplicant.resume !== "" ? "Download Resume" : "No Resume"}
+            </Button>
+          </Grid>
+          <Grid item>
+            <Button
+              variant="outlined"
+              color="primary"
+              disabled={!application.jobApplicant.resume || application.jobApplicant.resume === ""}
+              onClick={() => {
+                if (application.jobApplicant.resume && application.jobApplicant.resume !== "") {
+                  const fileUrl = `${server}${application.jobApplicant.resume}`;
+                  const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+                  window.open(viewerUrl, '_blank');
+                } else {
+                  setPopup({
+                    open: true,
+                    severity: "error",
+                    message: "No resume found",
+                  });
+                }
+              }}
+              style={{ marginBottom: 8 }}
+            >
+              {application.jobApplicant.resume && application.jobApplicant.resume !== "" ? "View Resume" : "No Resume"}
             </Button>
           </Grid>
           <Grid item container xs>
@@ -696,13 +740,15 @@ const JobApplications = (props) => {
     searchParams = [...searchParams, ...asc, ...desc];
     const queryString = searchParams.join("&");
     console.log(queryString);
-    let address = `${apiList.applicants}?jobId=${jobId}`;
+    let address = `${apiList.jobs}/${jobId}/applications`;
     if (queryString !== "") {
-      address = `${address}&${queryString}`;
+      address = `${address}?${queryString}`;
     }
 
-    console.log(address);
-
+    console.log("Making API call to:", address);
+    console.log("Job ID:", jobId);
+    console.log("Token:", localStorage.getItem("token") ? "Present" : "Missing");
+    
     axios
       .get(address, {
         headers: {
@@ -710,17 +756,17 @@ const JobApplications = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
+        console.log("Job Applications API Response:", response.data);
         setApplications(response.data);
       })
       .catch((err) => {
-        console.log(err.response);
-        // console.log(err.response.data);
+        console.error("Error fetching job applications:", err);
+        console.error("Error response:", err.response?.data);
         setApplications([]);
         setPopup({
           open: true,
           severity: "error",
-          message: err.response.data.message,
+          message: err.response?.data?.message || "Error fetching applications",
         });
       });
   };

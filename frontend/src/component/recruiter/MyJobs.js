@@ -88,6 +88,8 @@ const JobTile = (props) => {
 
   const handleCloseUpdate = () => {
     setOpenUpdate(false);
+    // Reset job details to original values
+    setJobDetails(job);
   };
 
   const handleDelete = () => {
@@ -119,6 +121,66 @@ const JobTile = (props) => {
   };
 
   const handleJobUpdate = () => {
+    // Basic validation
+    if (!jobDetails.title || !jobDetails.title.trim()) {
+      setPopup({
+        open: true,
+        severity: "error",
+        message: "Job title is required",
+      });
+      return;
+    }
+    
+    if (!jobDetails.salary || jobDetails.salary < 0) {
+      setPopup({
+        open: true,
+        severity: "error",
+        message: "Salary must be a positive number",
+      });
+      return;
+    }
+    
+    if (!jobDetails.maxApplicants || jobDetails.maxApplicants < 1) {
+      setPopup({
+        open: true,
+        severity: "error",
+        message: "Maximum applicants must be at least 1",
+      });
+      return;
+    }
+    
+    if (!jobDetails.maxPositions || jobDetails.maxPositions < 1) {
+      setPopup({
+        open: true,
+        severity: "error",
+        message: "Positions available must be at least 1",
+      });
+      return;
+    }
+    
+    if (!jobDetails.deadline) {
+      setPopup({
+        open: true,
+        severity: "error",
+        message: "Application deadline is required",
+      });
+      return;
+    }
+    
+    // Check if deadline is in the future
+    const deadlineDate = new Date(jobDetails.deadline);
+    const now = new Date();
+    if (deadlineDate <= now) {
+      setPopup({
+        open: true,
+        severity: "error",
+        message: "Application deadline must be in the future",
+      });
+      return;
+    }
+    
+    console.log("Updating job with details:", jobDetails);
+    
     axios
       .put(`${apiList.jobs}/${job._id}`, jobDetails, {
         headers: {
@@ -139,7 +201,7 @@ const JobTile = (props) => {
         setPopup({
           open: true,
           severity: "error",
-          message: err.response.data.message,
+          message: err.response?.data?.message || "Error updating job",
         });
         handleCloseUpdate();
       });
@@ -261,24 +323,102 @@ const JobTile = (props) => {
       >
         <Paper
           style={{
-            padding: "20px",
+            padding: "30px",
             outline: "none",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
-            minWidth: "30%",
+            minWidth: "500px",
+            maxWidth: "90vw",
+            maxHeight: "90vh",
+            overflow: "auto",
             alignItems: "center",
           }}
         >
-          <Typography variant="h4" style={{ marginBottom: "10px" }}>
-            Update Details
+          <Typography variant="h4" style={{ marginBottom: "10px", textAlign: "center" }}>
+            Update Job Details
+          </Typography>
+          <Typography variant="body2" style={{ marginBottom: "20px", textAlign: "center", color: "#666" }}>
+            Current Applications: {job.activeApplications || 0} | Accepted: {job.acceptedCandidates || 0}
           </Typography>
           <Grid
             container
             direction="column"
             spacing={3}
-            style={{ margin: "10px" }}
+            style={{ margin: "10px", minWidth: "400px" }}
           >
+            <Grid item>
+              <TextField
+                label="Job Title"
+                type="text"
+                variant="outlined"
+                value={jobDetails.title}
+                onChange={(event) => {
+                  handleInput("title", event.target.value);
+                }}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item>
+              <TextField
+                label="Job Type"
+                select
+                variant="outlined"
+                value={jobDetails.jobType}
+                onChange={(event) => {
+                  handleInput("jobType", event.target.value);
+                }}
+                fullWidth
+                required
+              >
+                <MenuItem value="Full Time">Full Time</MenuItem>
+                <MenuItem value="Part Time">Part Time</MenuItem>
+                <MenuItem value="Work From Home">Work From Home</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item>
+              <TextField
+                label="Salary (₹ per month)"
+                type="number"
+                variant="outlined"
+                value={jobDetails.salary}
+                onChange={(event) => {
+                  handleInput("salary", event.target.value);
+                }}
+                InputProps={{ inputProps: { min: 0 } }}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item>
+              <TextField
+                label="Duration (months)"
+                type="number"
+                variant="outlined"
+                value={jobDetails.duration}
+                onChange={(event) => {
+                  handleInput("duration", event.target.value);
+                }}
+                InputProps={{ inputProps: { min: 0 } }}
+                fullWidth
+                helperText="Enter 0 for flexible duration"
+              />
+            </Grid>
+            <Grid item>
+              <TextField
+                label="Skills Required"
+                type="text"
+                variant="outlined"
+                value={jobDetails.skillsets.join(", ")}
+                onChange={(event) => {
+                  const skills = event.target.value.split(",").map(skill => skill.trim()).filter(skill => skill !== "");
+                  handleInput("skillsets", skills);
+                }}
+                fullWidth
+                helperText="Enter skills separated by commas (e.g., JavaScript, React, Node.js)"
+              />
+            </Grid>
             <Grid item>
               <TextField
                 label="Application Deadline"
@@ -292,6 +432,7 @@ const JobTile = (props) => {
                 }}
                 variant="outlined"
                 fullWidth
+                required
               />
             </Grid>
             <Grid item>
@@ -305,6 +446,7 @@ const JobTile = (props) => {
                 }}
                 InputProps={{ inputProps: { min: 1 } }}
                 fullWidth
+                required
               />
             </Grid>
             <Grid item>
@@ -318,25 +460,36 @@ const JobTile = (props) => {
                 }}
                 InputProps={{ inputProps: { min: 1 } }}
                 fullWidth
+                required
               />
             </Grid>
           </Grid>
-          <Grid container justify="center" spacing={5}>
+          <Grid container justify="center" spacing={3}>
             <Grid item>
               <Button
                 variant="contained"
                 color="secondary"
-                style={{ padding: "10px 50px" }}
+                style={{ padding: "10px 30px" }}
                 onClick={() => handleJobUpdate()}
               >
-                Update
+                Update Job
+              </Button>
+            </Grid>
+            <Grid item>
+              <Button
+                variant="outlined"
+                color="primary"
+                style={{ padding: "10px 30px" }}
+                onClick={() => setJobDetails(job)}
+              >
+                Reset
               </Button>
             </Grid>
             <Grid item>
               <Button
                 variant="contained"
                 color="primary"
-                style={{ padding: "10px 50px" }}
+                style={{ padding: "10px 30px" }}
                 onClick={() => handleCloseUpdate()}
               >
                 Cancel
@@ -764,7 +917,8 @@ const MyJobs = (props) => {
       address = `${address}?${queryString}`;
     }
 
-    console.log(address);
+    console.log("Making API call to:", address);
+    console.log("Token:", localStorage.getItem("token") ? "Present" : "Missing");
     axios
       .get(address, {
         headers: {
@@ -773,14 +927,20 @@ const MyJobs = (props) => {
       })
       .then((response) => {
         console.log(response.data);
-        setJobs(response.data);
+        if (response.data && response.data.jobs) {
+          setJobs(response.data.jobs);
+        } else {
+          setJobs([]);
+        }
       })
       .catch((err) => {
-        console.log(err.response.data);
+        console.error("Error fetching MyJobs:", err);
+        console.error("Error response:", err.response?.data);
+        setJobs([]);
         setPopup({
           open: true,
           severity: "error",
-          message: "Error",
+          message: err.response?.data?.message || "Error fetching jobs",
         });
       });
   };

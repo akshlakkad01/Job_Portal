@@ -7,7 +7,8 @@ import Navbar from "./component/Navbar";
 import Login from "./component/Login";
 import Logout from "./component/Logout";
 import Signup from "./component/Signup";
-import Home from "./component/Home";
+import ResetPassword from "./component/ResetPassword";
+import Home from "./component/SearchJob";
 import Applications from "./component/Applications";
 import Profile from "./component/Profile";
 import CreateJobs from "./component/recruiter/CreateJobs";
@@ -61,7 +62,10 @@ function App() {
               <Route exact path="/logout">
                 <Logout />
               </Route>
-              <Route exact path="/home">
+              <Route exact path="/reset-password/:token">
+                <ResetPassword />
+              </Route>
+              <Route exact path="/jobs">
                 <Home />
               </Route>
               <Route exact path="/applications">

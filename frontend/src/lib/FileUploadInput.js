@@ -14,12 +14,22 @@ const FileUploadInput = (props) => {
   const [uploadPercentage, setUploadPercentage] = useState(0);
 
   const handleUpload = () => {
-    console.log(file);
+    console.log("Uploading file:", file);
+    console.log("Upload URL:", uploadTo);
     const data = new FormData();
     data.append("file", file);
+    
+    // Set the field name to match the backend's expected field name
+    if (identifier === "resume") {
+      data.set("resume", file);
+    } else if (identifier === "profile") {
+      data.set("profile", file);
+    }
+    
     Axios.post(uploadTo, data, {
       headers: {
         "Content-Type": "multipart/form-data",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
       },
       onUploadProgress: (progressEvent) => {
         setUploadPercentage(
@@ -30,23 +40,24 @@ const FileUploadInput = (props) => {
       },
     })
       .then((response) => {
-        console.log(response.data);
-        handleInput(identifier, response.data.url);
-        setPopup({
-          open: true,
-          severity: "success",
-          message: response.data.message,
-        });
+        console.log("Upload response:", response.data);
+        if (response.data && response.data.url) {
+          handleInput(identifier, response.data.url);
+          setPopup({
+            open: true,
+            severity: "success",
+            message: response.data.message || "File uploaded successfully",
+          });
+        } else {
+          throw new Error("Invalid response from server");
+        }
       })
       .catch((err) => {
-        console.log(err.response);
+        console.error("Upload error:", err);
         setPopup({
           open: true,
           severity: "error",
-          message: err.response.statusText,
-          //   message: err.response.data
-          //     ? err.response.data.message
-          //     : err.response.statusText,
+          message: err.response?.data?.message || err.message || "Error uploading file",
         });
       });
   };

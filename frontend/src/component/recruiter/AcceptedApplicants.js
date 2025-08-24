@@ -532,12 +532,26 @@ const ApplicationTile = (props) => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            flexDirection: "column",
           }}
         >
           <Avatar
-            src={`${server}${application.jobApplicant.profile}`}
+            src={application.jobApplicant.profile ? `${server}${application.jobApplicant.profile}` : undefined}
             className={classes.avatar}
-          />
+            style={{ 
+              width: 80, 
+              height: 80, 
+              marginBottom: 8,
+              border: '2px solid #e0e0e0'
+            }}
+          >
+            {!application.jobApplicant.profile && application.jobApplicant.name ? 
+              application.jobApplicant.name.charAt(0).toUpperCase() : 'U'
+            }
+          </Avatar>
+          <Typography variant="caption" style={{ textAlign: 'center', color: '#666' }}>
+            {application.jobApplicant.name}
+          </Typography>
         </Grid>
         <Grid container item xs={7} spacing={1} direction="column">
           <Grid item>
@@ -567,15 +581,40 @@ const ApplicationTile = (props) => {
             ))}
           </Grid>
         </Grid>
-        <Grid item container direction="column" xs={3}>
+        <Grid item container direction="column" xs={3} spacing={2}>
           <Grid item>
             <Button
               variant="contained"
               className={classes.statusBlock}
               color="primary"
+              disabled={!application.jobApplicant.resume || application.jobApplicant.resume === ""}
               onClick={() => getResume()}
+              style={{ marginBottom: 8 }}
             >
-              Download Resume
+              {application.jobApplicant.resume && application.jobApplicant.resume !== "" ? "Download Resume" : "No Resume"}
+            </Button>
+          </Grid>
+          <Grid item>
+            <Button
+              variant="outlined"
+              color="primary"
+              disabled={!application.jobApplicant.resume || application.jobApplicant.resume === ""}
+              onClick={() => {
+                if (application.jobApplicant.resume && application.jobApplicant.resume !== "") {
+                  const fileUrl = `${server}${application.jobApplicant.resume}`;
+                  const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+                  window.open(viewerUrl, '_blank');
+                } else {
+                  setPopup({
+                    open: true,
+                    severity: "error",
+                    message: "No resume found",
+                  });
+                }
+              }}
+              style={{ marginBottom: 8 }}
+            >
+              {application.jobApplicant.resume && application.jobApplicant.resume !== "" ? "View Resume" : "No Resume"}
             </Button>
           </Grid>
           <Grid item container xs>
@@ -742,8 +781,9 @@ const AcceptedApplicants = (props) => {
       address = `${address}?${queryString}`;
     }
 
-    console.log(address);
-
+    console.log("Making API call to:", address);
+    console.log("Token:", localStorage.getItem("token") ? "Present" : "Missing");
+    
     axios
       .get(address, {
         headers: {
@@ -755,13 +795,13 @@ const AcceptedApplicants = (props) => {
         setApplications(response.data);
       })
       .catch((err) => {
-        console.log(err.response);
-        // console.log(err.response.data);
+        console.error("Error fetching applicants:", err);
+        console.error("Error response:", err.response?.data);
         setApplications([]);
         setPopup({
           open: true,
           severity: "error",
-          message: err.response.data.message,
+          message: err.response?.data?.message || "Error fetching applicants",
         });
       });
   };

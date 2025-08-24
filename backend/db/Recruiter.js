@@ -22,6 +22,12 @@ let schema = new mongoose.Schema(
     bio: {
       type: String,
     },
+    resume: {
+      type: String,
+    },
+    profile: {
+      type: String,
+    },
   },
   { collation: { locale: "en" } }
 );

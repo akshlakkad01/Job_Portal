@@ -1,70 +1,79 @@
-const express = require("express");
-const multer = require("multer");
-const fs = require("fs");
-const { v4: uuidv4 } = require("uuid");
-const { promisify } = require("util");
-
-const pipeline = promisify(require("stream").pipeline);
-
+// backend/routes/uploadRoutes.js
+const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const JobApplicant = require('../db/JobApplicant');
 
-const upload = multer();
-
-router.post("/resume", upload.single("file"), (req, res) => {
-  const { file } = req;
-  if (file.detectedFileExtension != ".pdf") {
-    res.status(400).json({
-      message: "Invalid format",
-    });
-  } else {
-    const filename = `${uuidv4()}${file.detectedFileExtension}`;
-
-    pipeline(
-      file.stream,
-      fs.createWriteStream(`${__dirname}/../public/resume/${filename}`)
-    )
-      .then(() => {
-        res.send({
-          message: "File uploaded successfully",
-          url: `/host/resume/${filename}`,
-        });
-      })
-      .catch((err) => {
-        res.status(400).json({
-          message: "Error while uploading",
-        });
-      });
+// Configure storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dest = file.fieldname === 'resume' ? './public/resume/' : './public/profile/';
+    cb(null, dest);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, uniqueSuffix + ext);
   }
 });
 
-router.post("/profile", upload.single("file"), (req, res) => {
-  const { file } = req;
-  if (
-    file.detectedFileExtension != ".jpg" &&
-    file.detectedFileExtension != ".png"
-  ) {
-    res.status(400).json({
-      message: "Invalid format",
-    });
-  } else {
-    const filename = `${uuidv4()}${file.detectedFileExtension}`;
+const upload = multer({ storage: storage });
 
-    pipeline(
-      file.stream,
-      fs.createWriteStream(`${__dirname}/../public/profile/${filename}`)
-    )
-      .then(() => {
-        res.send({
-          message: "Profile image uploaded successfully",
-          url: `/host/profile/${filename}`,
-        });
-      })
-      .catch((err) => {
-        res.status(400).json({
-          message: "Error while uploading",
-        });
-      });
+router.post("/resume", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
   }
+  
+  const file = req.file;
+  const filename = file.filename;
+  const relativePath = `/host/resume/${filename}`;
+  
+  console.log( "Inside  resume upload : "  +  relativePath);
+  
+
+  JobApplicant.updateOne(
+    { userId: req.user._id }, 
+    { $set: { resume: relativePath } },
+    { upsert: true }
+  )
+  .then(result => {
+    res.json({ 
+      message: "Resume updated successfully",
+      url: relativePath
+    });
+  })
+  .catch(err => {
+    console.log(err);
+    res.status(400).json({ message: "Error updating resume" });
+  });
+});
+
+router.post("/profile", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+  
+  const file = req.file;
+  const filename = file.filename;
+  const relativePath = `/host/profile/${filename}`;
+  
+  JobApplicant.updateOne(
+    { userId: req.user._id }, 
+    { $set: { profile: relativePath } },
+    { upsert: true }
+  )
+  .then(result => {
+    res.json({ 
+      message: "Profile image updated successfully",
+      url: relativePath
+    });
+  })
+  .catch(err => {
+    console.log(err);
+    res.status(400).json({ message: "Error updating profile image" });
+  });
 });
 
 module.exports = router;

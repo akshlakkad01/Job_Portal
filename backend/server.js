@@ -6,6 +6,7 @@ const cors = require("cors");
 const fs = require("fs");
 
 // MongoDB
+console.log("Attempting to connect to MongoDB...");
 mongoose
   .connect("mongodb://localhost:27017/jobPortal", {
     useNewUrlParser: true,
@@ -13,8 +14,11 @@ mongoose
     useCreateIndex: true,
     useFindAndModify: false,
   })
-  .then((res) => console.log("Connected to DB"))
-  .catch((err) => console.log(err));
+  .then((res) => console.log("Connected to DB successfully"))
+  .catch((err) => {
+    console.log("MongoDB connection error:", err);
+    process.exit(1);
+  });
 
 // initialising directories
 if (!fs.existsSync("./public")) {
@@ -25,6 +29,9 @@ if (!fs.existsSync("./public/resume")) {
 }
 if (!fs.existsSync("./public/profile")) {
   fs.mkdirSync("./public/profile");
+}
+if (!fs.existsSync("./temp")) {
+  fs.mkdirSync("./temp");
 }
 
 const app = express();
@@ -43,6 +50,23 @@ app.use("/auth", require("./routes/authRoutes"));
 app.use("/api", require("./routes/apiRoutes"));
 app.use("/upload", require("./routes/uploadRoutes"));
 app.use("/host", require("./routes/downloadRoutes"));
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Global error handler:", err);
+  res.status(500).json({
+    message: "Internal server error",
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  console.log("404 - Route not found:", req.method, req.url);
+  res.status(404).json({
+    message: "Route not found"
+  });
+});
 
 app.listen(port, () => {
   console.log(`Server started on port ${port}!`);
