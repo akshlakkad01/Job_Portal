@@ -2,13 +2,14 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const passportConfig = require("./lib/passportConfig");
+const authMiddleware = require("./middleware/middleware");
 const cors = require("cors");
 const fs = require("fs");
 
 // MongoDB
 console.log("Attempting to connect to MongoDB...");
 mongoose
-  .connect("mongodb://localhost:27017/jobPortal", {
+  .connect("mongodb+srv://Ak:kyIqekPFVyJwdZVh@cluster0.ico8k.mongodb.net", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useCreateIndex: true,
@@ -48,7 +49,7 @@ app.use(passportConfig.initialize());
 // Routing
 app.use("/auth", require("./routes/authRoutes"));
 app.use("/api", require("./routes/apiRoutes"));
-app.use("/upload", require("./routes/uploadRoutes"));
+app.use("/upload", authMiddleware ,require("./routes/uploadRoutes"));
 app.use("/host", require("./routes/downloadRoutes"));
 
 // Global error handler

@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post("/resume", upload.single("file"), (req, res) => {
+router.post("/resume", upload.single("resume"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
@@ -50,7 +50,7 @@ router.post("/resume", upload.single("file"), (req, res) => {
   });
 });
 
-router.post("/profile", upload.single("file"), (req, res) => {
+router.post("/profile", upload.single("profile"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
