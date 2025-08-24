@@ -17,11 +17,13 @@ const FileUploadInput = (props) => {
     console.log("Uploading file:", file);
     console.log("Upload URL:", uploadTo);
     const data = new FormData();
-    data.append("file", file);
+    // data.append("file", file);
     
     // Set the field name to match the backend's expected field name
     if (identifier === "resume") {
       data.set("resume", file);
+      console.log(data);
+      
     } else if (identifier === "profile") {
       data.set("profile", file);
     }
